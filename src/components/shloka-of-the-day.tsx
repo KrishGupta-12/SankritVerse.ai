@@ -9,7 +9,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { BookOpenText } from 'lucide-react';
-import { useCollection, useFirestore } from '@/firebase';
+import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, query, where, limit, Timestamp } from 'firebase/firestore';
 import { useMemo } from 'react';
 import { Skeleton } from './ui/skeleton';
@@ -27,11 +27,13 @@ type DailyShloka = {
 export default function ShlokaOfTheDay() {
   const firestore = useFirestore();
   
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const todayTimestamp = Timestamp.fromDate(today);
+  const todayTimestamp = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return Timestamp.fromDate(today);
+  }, []);
 
-  const dailyShlokaQuery = useMemo(() => {
+  const dailyShlokaQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(
       collection(firestore, 'dailyShlokas'),
