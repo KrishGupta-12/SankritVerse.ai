@@ -1,37 +1,32 @@
 /**
- * @fileoverview Firestore Security Rules for the Sanskrit Verse application.
+ * @fileOverview Firestore Security Rules for the Sanskrit Verse Analysis App.
  *
  * Core Philosophy:
- * This ruleset prioritizes a strict, path-based ownership model for user data while allowing public read access to shared verse data.
+ * This ruleset enforces a strict user-ownership model for private data (user profiles and saved verses) and allows public read access to shared data (verses and daily shlokas).
  *
  * Data Structure:
- * - /users/{userId}: Stores user profiles, with the 'userId' matching the Firebase Auth UID.
- * - /users/{userId}/userVerses/{userVerseId}: Subcollection for verses saved by each user, enforcing strict ownership.
- * - /verses/{verseId}: Stores all verses, accessible for public reading.
- * - /dailyShlokas/{dailyShlokaId}: Stores the Shloka of the Day.
+ * - /users/{userId}: Stores user profile data, accessible only to the authenticated user.
+ * - /users/{userId}/userVerses/{userVerseId}: Stores verses saved by a specific user, accessible only to that user.
+ * - /verses/{verseId}: Stores all verses, publicly readable.
+ * - /dailyShlokas/{dailyShlokaId}: Stores the Shloka of the Day, publicly readable.
  *
  * Key Security Decisions:
- * - User listing is disallowed.
- * - Public read access is granted to the 'verses' and 'dailyShlokas' collections, with owner-only writes (assuming an ownership field exists).
- *
- * Denormalization for Authorization:
- * - The `/users/{userId}/userVerses/{userVerseId}` subcollection uses path-based ownership (userId in the path) to avoid the need to store and validate a redundant `userId` field within the UserVerse document itself.
- *
- * Structural Segregation:
- * - User-specific, private data (user profiles and saved verses) are stored under the `/users/{userId}` path, while public verse data is stored in the top-level `/verses` and `/dailyShlokas` collections.
+ * - User listing is disallowed to protect privacy.
+ * - Public read access is granted to the 'verses' and 'dailyShlokas' collections to facilitate content sharing and discovery.
+ * - Write access to 'dailyShlokas' is completely disabled to all users, including authenticated ones.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Protects the user profiles collection.
+     * @description Protects user profile data, ensuring only the authenticated user can read or write their own profile.
      * @path /users/{userId}
-     * @allow (create) - If the user's UID matches the userId, allowing self-creation.
-     * @allow (get, update, delete) - If the user's UID matches the userId, allowing access to their own profile.
-     * @deny (list) - Listing users is not permitted.
-     * @deny (create, update, delete) - If the user's UID does not match the userId, preventing unauthorized access.
-     * @principle Enforces document ownership for writes.
+     * @allow (create) - Authenticated user creates their profile with matching userId.
+     * @allow (get, update, delete) - Authenticated user accesses their own profile.
+     * @deny (create) - User attempts to create a profile with a mismatched userId.
+     * @deny (get, update, delete) - User attempts to access another user's profile.
+     * @principle Enforces document ownership for writes and restricts access to a user's own data.
      */
     match /users/{userId} {
       function isSignedIn() {
@@ -39,22 +34,22 @@ service cloud.firestore {
       }
 
       function isOwner(userId) {
-        return isSignedIn() && request.auth.uid == userId;
+        return request.auth.uid == userId;
       }
 
-      allow get: if isOwner(userId);
+      allow create: if isSignedIn() && isOwner(userId) && request.resource.data.id == userId;
+      allow get, update, delete: if isSignedIn() && isOwner(userId) && resource.data.id == userId;
       allow list: if false;
-      allow create: if isOwner(userId);
-      allow update: if isOwner(userId);
-      allow delete: if isOwner(userId);
     }
 
     /**
-     * @description Protects the user verses subcollection.
+     * @description Secures user-saved verses, ensuring only the owner can manage their saved verses.
      * @path /users/{userId}/userVerses/{userVerseId}
-     * @allow (create, get, list, update, delete) - If the user's UID matches the userId, allowing access to their own saved verses.
-     * @deny (create, get, list, update, delete) - If the user's UID does not match the userId, preventing unauthorized access.
-     * @principle Restricts access to a user's own data tree.
+     * @allow (create) - Authenticated user saves a verse to their library.
+     * @allow (get, update, delete) - Authenticated user accesses their saved verses.
+     * @deny (create) - User attempts to save a verse to another user's library.
+     * @deny (get, update, delete) - User attempts to access another user's saved verses.
+     * @principle Enforces document ownership for all operations within a user's subcollection.
      */
     match /users/{userId}/userVerses/{userVerseId} {
       function isSignedIn() {
@@ -62,40 +57,36 @@ service cloud.firestore {
       }
 
       function isOwner(userId) {
-        return isSignedIn() && request.auth.uid == userId;
+        return request.auth.uid == userId;
       }
-
-      allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
-      allow create: if isOwner(userId);
-      allow update: if isOwner(userId);
-      allow delete: if isOwner(userId);
+      
+      allow create: if isSignedIn() && isOwner(userId) && request.resource.data.userId == userId;
+      allow get, update, delete: if isSignedIn() && isOwner(userId) && resource.data.userId == userId;
+      allow list: if isSignedIn() && isOwner(userId);
     }
 
     /**
-     * @description Allows public read access to all verses.
+     * @description Allows public read access to all verses. Write access is disabled.
      * @path /verses/{verseId}
-     * @allow (get, list) - Allows anyone to read verses.
-     * @deny (create, update, delete) - Prevents unauthorized modification of verses.
-     * @principle Allows public read access but protects against unauthorized writes.
+     * @allow (get, list) - Any user can read the verses.
+     * @deny (create, update, delete) - No user can modify verses.
+     * @principle Allows open reads while preventing unauthorized writes.
      */
     match /verses/{verseId} {
       allow get, list: if true;
-      allow create, update, delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
-      // CRITICAL: Cannot implement owner-only writes. The 'Verse' entity is missing an 'ownerId' or 'authorId' field.
+      allow create, update, delete: if false;
     }
 
     /**
-     * @description Allows public read access to daily shlokas.
+     * @description Allows public read access to the Shloka of the Day. Write access is disabled.
      * @path /dailyShlokas/{dailyShlokaId}
-     * @allow (get, list) - Allows anyone to read daily shlokas.
-     * @deny (create, update, delete) - Prevents unauthorized modification of daily shlokas.
-     * @principle Allows public read access but protects against unauthorized writes.
+     * @allow (get, list) - Any user can read the Shloka of the Day.
+     * @deny (create, update, delete) - No user can modify the Shloka of the Day.
+     * @principle Allows open reads while preventing unauthorized writes.
      */
     match /dailyShlokas/{dailyShlokaId} {
       allow get, list: if true;
-      allow create, update, delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
-      // CRITICAL: Cannot implement owner-only writes. The 'DailyShloka' entity is missing an 'ownerId' or 'authorId' field.
+      allow create, update, delete: if false;
     }
   }
 }
