@@ -98,7 +98,7 @@ function VerseDetailDialog({ verse, isOpen, onOpenChange }: { verse: CombinedVer
     );
 }
 
-function VerseRow({ verse, onSelectVerse, onDelete }: { verse: CombinedVerse, onSelectVerse: () => void, onDelete: () => void }) {
+function VerseRow({ index, verse, onSelectVerse, onDelete }: { index: number, verse: CombinedVerse, onSelectVerse: () => void, onDelete: () => void }) {
     const [isDeleting, setIsDeleting] = useState(false);
 
     const handleDeleteClick = async () => {
@@ -109,11 +109,14 @@ function VerseRow({ verse, onSelectVerse, onDelete }: { verse: CombinedVerse, on
 
     return (
         <div className="group flex items-center justify-between gap-4 p-3 rounded-lg hover:bg-muted/50 transition-colors">
-            <button onClick={onSelectVerse} className="flex-grow text-left">
-                <p className="font-noto-devanagari text-base truncate">{verse.details?.text ?? 'Loading verse...'}</p>
-                <p className="text-xs text-muted-foreground">
-                    Saved on {format(verse.savedTimestamp.toDate(), "PP")}
-                </p>
+            <button onClick={onSelectVerse} className="flex-grow text-left flex items-center gap-4">
+                <span className="text-sm font-medium text-muted-foreground w-6 text-right">{index}.</span>
+                <div className="flex-grow">
+                    <p className="font-noto-devanagari text-base truncate">{verse.details?.text ?? 'Loading verse...'}</p>
+                    <p className="text-xs text-muted-foreground">
+                        Saved on {format(verse.savedTimestamp.toDate(), "PP")}
+                    </p>
+                </div>
             </button>
             <AlertDialog>
                 <AlertDialogTrigger asChild>
@@ -326,9 +329,10 @@ export default function LibraryPage() {
                     {isLoading && filteredVerses.length === 0 && <Loader2 className="mx-auto my-4 h-6 w-6 animate-spin" />}
                     {!isLoading && filteredVerses.length > 0 ? (
                         <div className="divide-y divide-border">
-                            {filteredVerses.map((verse) => (
+                            {filteredVerses.map((verse, index) => (
                                 <VerseRow 
                                     key={verse.id} 
+                                    index={index + 1}
                                     verse={verse}
                                     onSelectVerse={() => {
                                         setSelectedVerse(verse);
