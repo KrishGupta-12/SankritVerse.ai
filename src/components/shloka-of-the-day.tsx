@@ -14,7 +14,6 @@ import { collection, query, where, limit, Timestamp, doc } from 'firebase/firest
 import { useMemo, useState } from 'react';
 import { Skeleton } from './ui/skeleton';
 import { generateDailyShloka } from '@/ai/flows/generate-daily-shloka';
-import { generateVerseExplanations } from '@/ai/flows/generate-verse-explanations';
 import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { Button } from './ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -23,9 +22,9 @@ type DailyShloka = {
   id?: string;
   verseId: string;
   date: Timestamp;
-  interpretation: string; // This comes from the 'summary' of analysis
+  interpretation: string;
   verseText: string;
-  verseSource: string; // This will be the 'source' from generation
+  verseSource: string; 
   verseChapter: number;
   verseNumber: number;
   transliteration: string;
@@ -71,26 +70,20 @@ export default function ShlokaOfTheDay() {
     setIsGenerating(true);
 
     try {
-      // 1. Generate a new shloka
-      toast({ title: "Generating new verse...", description: "Please wait while we select a verse for you."});
-      const { verseText, source, chapter, verse } = await generateDailyShloka();
+      toast({ title: "Generating new verse...", description: "Please wait, this may take a moment."});
+      const analysis = await generateDailyShloka();
 
-      // 2. Get detailed explanations for it
-      toast({ title: "Analyzing the verse...", description: "Getting translations and grammar details."});
-      const analysis = await generateVerseExplanations({ verseText });
-
-      // 3. Prepare the data for Firestore
-      const verseId = btoa(unescape(encodeURIComponent(verseText))).substring(0, 20);
+      const verseId = btoa(unescape(encodeURIComponent(analysis.verseText))).substring(0, 20);
       const shlokaId = `${new Date().toISOString().split('T')[0]}-${verseId}`;
       const dailyShlokaRef = doc(firestore, 'dailyShlokas', shlokaId);
       
       const newShlokaData: DailyShloka = {
         verseId,
         date: todayTimestamp,
-        verseText,
-        verseSource: source,
-        verseChapter: chapter,
-        verseNumber: verse,
+        verseText: analysis.verseText,
+        verseSource: analysis.source,
+        verseChapter: analysis.chapter,
+        verseNumber: analysis.verse,
         interpretation: analysis.summary,
         transliteration: analysis.transliteration,
         wordMeanings: analysis.wordMeanings,
@@ -98,7 +91,6 @@ export default function ShlokaOfTheDay() {
         translation: analysis.englishTranslation,
       };
 
-      // 4. Save to Firestore non-blockingly
       setDocumentNonBlocking(dailyShlokaRef, newShlokaData, { merge: true });
       
       toast({ title: "Verse of the Day is ready!", description: "Enjoy the wisdom for today."});

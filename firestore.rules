@@ -1,121 +1,104 @@
 /**
- * @fileoverview Firestore Security Rules for the Sanskrit Verse Analysis App.
- *
- * Core Philosophy:
- * This ruleset enforces a strict user-ownership model for personal data (user profiles, saved verses),
- * while allowing public read access to shared data (verses, daily shlokas).  All write operations are
- * protected by authorization checks to ensure data integrity and prevent unauthorized modifications.
+ * @file Firestore Security Rules
+ * @description This ruleset enforces a strict user-ownership model for personal data while allowing public read access to shared content.
  *
  * Data Structure:
- * - /users/{userId}: Stores user profile information, with the document ID matching the Firebase Auth UID.
- * - /users/{userId}/userVerses/{userVerseId}:  Subcollection containing verses saved by each user,
- *   ensuring that only the owning user can access their saved verses.
- * - /verses/{verseId}: Stores all verses, publicly readable.
- * - /dailyShlokas/{dailyShlokaId}: Stores the Shloka of the Day, publicly readable.
+ * - /users/{userId}: User profile information, accessible only to the owning user.
+ * - /users/{userId}/userVerses/{userVerseId}: Verses saved by a specific user, accessible only to that user.
+ * - /verses/{verseId}: Publicly accessible verses.
+ * - /dailyShlokas/{dailyShlokaId}: Publicly accessible daily shlokas.
  *
  * Key Security Decisions:
- * - User profiles are private and only accessible to the owning user.
- * - User-saved verses are private and only accessible to the owning user.
- * - All users can read all verses and daily shlokas, but only authorized users can create, update, or delete them (currently not implemented).
- * - Listing of all users is disallowed.
+ * - User profiles and saved verses are strictly private and only accessible to the owning user.
+ * - Public content (verses, daily shlokas) is readable by all users.
+ * - Data types are NOT validated during this prototyping phase.
  *
  * Denormalization for Authorization:
- * - The `UserVerse` subcollection is nested under `/users/{userId}` to enforce path-based ownership. This avoids the need for `get()` calls to verify ownership.
+ * - UserVerse documents are stored as a subcollection of the user's profile to ensure path-based ownership, simplifying security rules and eliminating the need for complex `get()` calls.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Secure user profile data. Only the authenticated user can read/write their own profile.
+     * @description Controls access to user profile information. Only the owning user can read or write their profile.
      * @path /users/{userId}
-     * @allow (create) User with UID 'user_abc' can create their profile.
-     * @allow (get, update, delete) User with UID 'user_abc' can read/update/delete their own profile.
-     * @deny (create) User with UID 'user_xyz' cannot create a profile with ID 'user_abc'.
-     * @deny (get, update, delete) User with UID 'user_xyz' cannot read/update/delete the profile of user 'user_abc'.
+     * @allow (get, create, update, delete) if the request is made by the user with the matching userId.
+     *   Example: A user with UID 'user123' can read their profile at /users/user123.
+     * @deny (get, create, update, delete) if the request is made by a different user.
+     *   Example: A user with UID 'user456' cannot read the profile at /users/user123.
      * @principle Enforces document ownership for all operations.
      */
     match /users/{userId} {
-      // Helper function to check if the user is signed in and owns the resource.
+      // Function to check if the request is from the owner.
       function isOwner(userId) {
         return request.auth != null && request.auth.uid == userId;
       }
 
-      // Allow the user to create their own profile, matching the auth UID.
-      allow create: if isOwner(userId) && request.resource.data.id == userId;
+      // Function to check if the request is from the owner and that resource exists.
+      function isExistingOwner(userId) {
+        return isOwner(userId) && resource != null;
+      }
 
-      // Allow the user to get their own profile.
       allow get: if isOwner(userId);
-
-      // Allow the user to update their own profile, enforcing immutability of the user ID.
-      allow update: if isOwner(userId) && request.resource.data.id == resource.data.id;
-
-      // Allow the user to delete their own profile.
-      allow delete: if isOwner(userId) && resource != null;
-
-      // Disallow listing all users.
-      allow list: if false;
+      allow list: if false; // User listing is disabled for privacy.
+      allow create: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
     }
 
     /**
-     * @description Secure user-saved verses. Only the authenticated user can read/write verses they have saved.
+     * @description Controls access to verses saved by a user. Only the owning user can read, create, update, or delete their saved verses.
      * @path /users/{userId}/userVerses/{userVerseId}
-     * @allow (create) User with UID 'user_abc' can save a verse to their profile.
-     * @allow (get, update, delete) User with UID 'user_abc' can read/update/delete a verse they have saved.
-     * @deny (create) User with UID 'user_xyz' cannot save a verse to the profile of user 'user_abc'.
-     * @deny (get, update, delete) User with UID 'user_xyz' cannot read/update/delete a verse saved by user 'user_abc'.
-     * @principle Enforces document ownership for all operations.
+     * @allow (get, list, create, update, delete) if the request is made by the user with the matching userId.
+     *   Example: A user with UID 'user123' can create a verse at /users/user123/userVerses/verse456.
+     * @deny (get, list, create, update, delete) if the request is made by a different user.
+     *   Example: A user with UID 'user456' cannot read the verse at /users/user123/userVerses/verse456.
+     * @principle Enforces strict path-based ownership.
      */
     match /users/{userId}/userVerses/{userVerseId} {
-      // Helper function to check if the user is signed in and owns the resource.
+      // Function to check if the request is from the owner.
       function isOwner(userId) {
         return request.auth != null && request.auth.uid == userId;
       }
 
-      // Allow the user to create a new saved verse under their profile.
-      allow create: if isOwner(userId) && request.resource.data.userId == userId;
-
-      // Allow the user to get their saved verse.
+      // Function to check if the request is from the owner and that resource exists.
+      function isExistingOwner(userId) {
+        return isOwner(userId) && resource != null;
+      }
       allow get: if isOwner(userId);
-
-      // Allow the user to update their saved verse. The user ID MUST NOT be changed.
-      allow update: if isOwner(userId) && resource != null && request.resource.data.userId == resource.data.userId;
-
-      // Allow the user to delete their saved verse.
-      allow delete: if isOwner(userId) && resource != null;
-
-      // Allow the owner to list their saved verses.
       allow list: if isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
     }
 
     /**
-     * @description Allow public read access to verses. Only authorized users can create, update, or delete them (currently not implemented).
+     * @description Allows public read access to verses. Write access is not permitted in this prototyping phase.
      * @path /verses/{verseId}
-     * @allow (get, list) Any user can read the verses.
-     * @deny (create, update, delete) No one can create, update, or delete verses without authorization.
-     * @principle Allows public read access with restricted write access.
+     * @allow (get, list) to all users.
+     *   Example: Any user can read a verse at /verses/verse123.
+     * @deny (create, update, delete) to all users.
+     *   Example: No user can create, update, or delete a verse at /verses/verse123.
+     * @principle Provides public read access while restricting write operations.
      */
     match /verses/{verseId} {
-      // Allow anyone to read verses.
       allow get, list: if true;
-
-      // Disallow creating, updating, or deleting verses for now.
-      allow create, update, delete: if false; // TODO: Add admin/editor validation if needed.
+      allow create, update, delete: if false;
     }
 
     /**
-     * @description Allow public read access to daily shlokas. Only authorized users can create, update, or delete them (currently not implemented).
+     * @description Allows public read access to daily shlokas. Write access is not permitted in this prototyping phase.
      * @path /dailyShlokas/{dailyShlokaId}
-     * @allow (get, list) Any user can read the daily shlokas.
-     * @deny (create, update, delete) No one can create, update, or delete daily shlokas without authorization.
-     * @principle Allows public read access with restricted write access.
+     * @allow (get, list) to all users.
+     *   Example: Any user can read a daily shloka at /dailyShlokas/shloka123.
+     * @deny (create, update, delete) to all users.
+     *   Example: No user can create, update, or delete a daily shloka at /dailyShlokas/shloka123.
+     * @principle Provides public read access while restricting write operations.
      */
     match /dailyShlokas/{dailyShlokaId} {
-      // Allow anyone to read the daily shlokas.
       allow get, list: if true;
-
-      // Disallow creating, updating, or deleting daily shlokas for now.
-      allow create, update, delete: if false; // TODO: Add admin/editor validation if needed.
+      allow create, update, delete: if false;
     }
   }
 }

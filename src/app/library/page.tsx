@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/alert-dialog"
 
 type UserVerse = {
-    id: string; // This will be the userVerse document ID from the subcollection
+    id: string; // This is the userVerse document ID from the subcollection
     verseId: string;
     savedTimestamp: any;
 };
@@ -38,8 +38,10 @@ function SavedVerseCard({ userVerse }: { userVerse: UserVerse }) {
     const { user } = useUser();
     const [deleting, setDeleting] = useState(false);
 
+    // This reference points to the document in the top-level 'verses' collection
     const verseRef = useMemoFirebase(() => {
         if (!firestore) return null;
+        // The verseId from the user's subcollection points to the main verse doc
         return doc(firestore, 'verses', userVerse.verseId);
     }, [firestore, userVerse.verseId]);
 
@@ -49,8 +51,9 @@ function SavedVerseCard({ userVerse }: { userVerse: UserVerse }) {
         if (!user || !firestore) return;
         setDeleting(true);
         try {
-            const verseDocRef = doc(firestore, `users/${user.uid}/userVerses`, userVerse.id);
-            await deleteDoc(verseDocRef);
+            // This reference points to the document in the user's 'userVerses' subcollection
+            const userVerseDocRef = doc(firestore, `users/${user.uid}/userVerses`, userVerse.id);
+            await deleteDoc(userVerseDocRef);
             toast({
                 title: "Verse Removed",
                 description: "The verse has been removed from your library.",
@@ -77,10 +80,14 @@ function SavedVerseCard({ userVerse }: { userVerse: UserVerse }) {
                             <div className="h-4 w-[200px] bg-gray-200 rounded animate-pulse"></div>
                         </div>
                     </div>
-                ) : (
+                ) : verse ? (
                     <div>
                         <p className="font-noto-devanagari text-lg mb-2">{verse?.text}</p>
                         <p className="text-muted-foreground italic">"{verse?.translation}"</p>
+                    </div>
+                ) : (
+                    <div>
+                      <p className="text-muted-foreground">Verse details could not be loaded.</p>
                     </div>
                 )}
                 <AlertDialog>
