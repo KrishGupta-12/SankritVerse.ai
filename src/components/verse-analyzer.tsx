@@ -4,11 +4,12 @@ import { useState } from 'react';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { BrainCircuit, Camera, Loader2 } from 'lucide-react';
+import { BrainCircuit, Loader2 } from 'lucide-react';
 import { generateVerseExplanations, type GenerateVerseExplanationsOutput } from '@/ai/flows/generate-verse-explanations';
 import { useToast } from '@/hooks/use-toast';
 import VerseAnalysisDisplay from '@/components/verse-analysis-display';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
+import CameraScanner from './camera-scanner';
+import { ScanVerseFromImageOutput } from '@/ai/flows/scan-verse-from-image';
 
 export default function VerseAnalyzer() {
   const [verse, setVerse] = useState('');
@@ -43,6 +44,11 @@ export default function VerseAnalyzer() {
     }
   };
 
+  const handleScanComplete = (scanResult: ScanVerseFromImageOutput, verseText: string) => {
+    setVerse(verseText);
+    setResult(scanResult);
+  };
+
   return (
     <section id="analyzer" className="container mx-auto px-4 py-8">
       <Card className="max-w-4xl mx-auto shadow-lg">
@@ -52,7 +58,7 @@ export default function VerseAnalyzer() {
             AI-Powered Analysis
           </CardTitle>
           <CardDescription>
-            Enter a Sanskrit verse below to get a detailed breakdown including transliteration, translation, and word meanings.
+            Enter a Sanskrit verse below, or scan one from a book, to get a detailed breakdown.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -75,19 +81,10 @@ export default function VerseAnalyzer() {
                   'Analyze Verse'
                 )}
               </Button>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button variant="outline" size="lg" disabled>
-                      <Camera className="mr-2 h-4 w-4" />
-                      Scan Verse (Coming Soon)
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>This feature will allow you to scan verses using your device's camera.</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              <CameraScanner 
+                onScanComplete={handleScanComplete}
+                setParentLoading={setLoading}
+              />
             </div>
           </form>
           {result && <VerseAnalysisDisplay result={result} originalVerse={verse} />}
