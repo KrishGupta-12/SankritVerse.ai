@@ -1,0 +1,216 @@
+{
+  "entities": {
+    "UserProfile": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "UserProfile",
+      "type": "object",
+      "description": "Represents a user profile in the application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the UserProfile entity."
+        },
+        "email": {
+          "type": "string",
+          "description": "User's email address.",
+          "format": "email"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "User's display name."
+        },
+        "photoURL": {
+          "type": "string",
+          "description": "URL of the user's profile picture.",
+          "format": "uri"
+        },
+        "creationTimestamp": {
+          "type": "string",
+          "description": "Timestamp indicating when the user profile was created.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "email",
+        "displayName"
+      ]
+    },
+    "Verse": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Verse",
+      "type": "object",
+      "description": "Represents a Sanskrit verse with its analysis.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Verse entity."
+        },
+        "text": {
+          "type": "string",
+          "description": "The original Sanskrit verse text."
+        },
+        "transliteration": {
+          "type": "string",
+          "description": "Transliteration of the verse."
+        },
+        "wordMeanings": {
+          "type": "string",
+          "description": "Meanings of individual words in the verse."
+        },
+        "grammarTags": {
+          "type": "string",
+          "description": "Grammatical tags associated with the verse."
+        },
+        "translation": {
+          "type": "string",
+          "description": "English translation of the verse."
+        }
+      },
+      "required": [
+        "id",
+        "text",
+        "translation"
+      ]
+    },
+    "UserVerse": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "UserVerse",
+      "type": "object",
+      "description": "Represents a verse saved to a user's personal library.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the UserVerse entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to UserProfile. (Relationship: UserProfile 1:N UserVerse)"
+        },
+        "verseId": {
+          "type": "string",
+          "description": "Reference to Verse. (Relationship: Verse 1:N UserVerse)"
+        },
+        "savedTimestamp": {
+          "type": "string",
+          "description": "Timestamp indicating when the verse was saved to the user's library.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "verseId"
+      ]
+    },
+    "DailyShloka": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "DailyShloka",
+      "type": "object",
+      "description": "Represents the Shloka of the Day.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the DailyShloka entity."
+        },
+        "verseId": {
+          "type": "string",
+          "description": "Reference to the Verse entity. (Relationship: Verse 1:1 DailyShloka)"
+        },
+        "date": {
+          "type": "string",
+          "description": "The date for which this Shloka is the Shloka of the Day.",
+          "format": "date-time"
+        },
+        "interpretation": {
+          "type": "string",
+          "description": "Interpretation of the shloka."
+        }
+      },
+      "required": [
+        "id",
+        "verseId",
+        "date"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "UserProfile",
+          "schema": {
+            "$ref": "#/backend/entities/UserProfile"
+          },
+          "description": "Stores user profile information.  The userId is the Firebase Auth UID.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The Firebase Auth UID of the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/userVerses/{userVerseId}",
+        "definition": {
+          "entityName": "UserVerse",
+          "schema": {
+            "$ref": "#/backend/entities/UserVerse"
+          },
+          "description": "Stores verses saved by the user. This subcollection enforces path-based ownership, ensuring that only the owner can access their verses.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The Firebase Auth UID of the user."
+            },
+            {
+              "name": "userVerseId",
+              "description": "Unique ID of the saved verse."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/verses/{verseId}",
+        "definition": {
+          "entityName": "Verse",
+          "schema": {
+            "$ref": "#/backend/entities/Verse"
+          },
+          "description": "Stores all verses.",
+          "params": [
+            {
+              "name": "verseId",
+              "description": "Unique ID of the verse."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/dailyShlokas/{dailyShlokaId}",
+        "definition": {
+          "entityName": "DailyShloka",
+          "schema": {
+            "$ref": "#/backend/entities/DailyShloka"
+          },
+          "description": "Stores the Shloka of the Day.  The `date` field is used to query for the current day's shloka.",
+          "params": [
+            {
+              "name": "dailyShlokaId",
+              "description": "Unique ID of the daily shloka entry."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure is designed to support a mobile-first application for Sanskrit verse analysis and personalization. It leverages denormalization to ensure authorization independence and structural segregation for simplified security rules.  Specifically, the `UserVerse` collection is placed under each user's document (`/users/{userId}/userVerses/{userVerseId}`) to ensure path-based ownership, simplifying security rules and guaranteeing that only the owning user can access their saved verses. This eliminates the need for complex `get()` calls in security rules and allows for secure list operations.  The `verses` collection stores all verses, while the `dailyShlokas` collection stores the shloka of the day, identified by date."
+  }
+}
