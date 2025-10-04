@@ -58,6 +58,10 @@ export default function Home() {
             <h1 className="font-headline text-5xl md:text-7xl text-primary drop-shadow-sm">
               SanskritVerse AI
             </h1>
+            <div className="my-6">
+                <p className="font-noto-devanagari text-2xl md:text-3xl text-primary/90">तमसो मा ज्योतिर्गमय</p>
+                <p className="text-sm text-muted-foreground mt-1 tracking-wide">"From darkness, lead me to light."</p>
+            </div>
             <p className="mt-4 text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
               Unlock the wisdom of ancient scriptures. Analyze, learn, and immerse yourself in the beauty of Sanskrit verses.
             </p>
