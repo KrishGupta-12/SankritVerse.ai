@@ -8,7 +8,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { getAuth, signOut } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import { Skeleton } from './ui/skeleton';
-import { BrainCircuit, LayoutDashboard, Library } from 'lucide-react';
+import { BrainCircuit, LayoutDashboard, Library, CircleUser } from 'lucide-react';
 
 export default function Header() {
   const { user, isUserLoading } = useUser();
@@ -74,7 +74,7 @@ export default function Header() {
                       <span>Dashboard</span>
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => router.push('/profile')}>
-                       <Library className="mr-2 h-4 w-4" />
+                       <CircleUser className="mr-2 h-4 w-4" />
                       <span>Profile</span>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />

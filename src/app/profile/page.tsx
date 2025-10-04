@@ -1,146 +1,76 @@
 'use client';
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useUser, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { collection, query, orderBy, doc, deleteDoc } from "firebase/firestore";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import { Loader2, Trash2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
+import { useUser } from '@/firebase';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Loader2, Mail, User as UserIcon } from 'lucide-react';
 
-
-// We need a more detailed type that includes the verse details
-type SavedVerse = {
-    id: string; // This will be the userVerse document ID from the subcollection
-    verseId: string;
-    savedTimestamp: any;
-    // These fields will be populated from the corresponding document in the /verses collection
-    text?: string;
-    translation?: string;
-};
-
-
-export default function LibraryPage() {
+export default function ProfilePage() {
     const { user, isUserLoading } = useUser();
-    const firestore = useFirestore();
     const router = useRouter();
-    const { toast } = useToast();
-    const [deletingId, setDeletingId] = useState<string | null>(null);
-
-    const userVersesQuery = useMemoFirebase(() => {
-        if (!user || !firestore) return null;
-        return query(
-            collection(firestore, `users/${user.uid}/userVerses`),
-            orderBy('savedTimestamp', 'desc')
-        );
-    }, [user, firestore]);
-
-    const { data: savedVerses, isLoading: isLoadingVerses } = useCollection<SavedVerse>(userVersesQuery);
 
     useEffect(() => {
         if (!isUserLoading && !user) {
             router.push('/login');
         }
     }, [user, isUserLoading, router]);
-
-
-    const handleDelete = async (userVerseId: string) => {
-        if (!user || !firestore) return;
-        setDeletingId(userVerseId);
-        try {
-            const verseRef = doc(firestore, `users/${user.uid}/userVerses`, userVerseId);
-            await deleteDoc(verseRef);
-            toast({
-                title: "Verse Removed",
-                description: "The verse has been removed from your library.",
-            });
-        } catch (error) {
-            console.error("Error removing verse: ", error);
-            toast({
-                title: "Error",
-                description: "Could not remove the verse. Please try again.",
-                variant: "destructive",
-            });
-        } finally {
-            setDeletingId(null);
+    
+    const getInitials = (name?: string | null) => {
+        if (!name) return 'U';
+        const names = name.split(' ');
+        if (names.length > 1) {
+          return `${names[0][0]}${names[names.length - 1][0]}`;
         }
-    };
+        return names[0].substring(0, 2);
+    }
 
-
-    if (isUserLoading || isLoadingVerses) {
+    if (isUserLoading || !user) {
         return (
             <div className="flex items-center justify-center min-h-[calc(100vh-12rem)]">
                 <Loader2 className="h-12 w-12 animate-spin text-primary" />
             </div>
         );
     }
-    
-    if (!user) {
-        // This will be handled by the useEffect redirect, but it's good practice
-        // to have a fallback UI state.
-        return null;
-    }
 
     return (
         <div className="container mx-auto px-4 py-8">
-            <h1 className="text-3xl font-headline text-primary mb-6">My Saved Verses</h1>
-            {savedVerses && savedVerses.length > 0 ? (
-                <div className="grid gap-4">
-                    {savedVerses.map((verse) => (
-                        <Card key={verse.id} className="shadow-sm hover:shadow-md transition-shadow">
-                            <CardContent className="p-4 flex justify-between items-start">
-                                <div>
-                                    <p className="font-noto-devanagari text-lg mb-2">{verse.id}</p>
-                                    <p className="text-muted-foreground italic">"{verse.verseId}"</p>
-                                </div>
-                                <AlertDialog>
-                                  <AlertDialogTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-destructive" disabled={deletingId === verse.id}>
-                                      {deletingId === verse.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                                    </Button>
-                                  </AlertDialogTrigger>
-                                  <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                      <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                      <AlertDialogDescription>
-                                        This action cannot be undone. This will permanently delete the verse from your library.
-                                      </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                      <AlertDialogAction onClick={() => handleDelete(verse.id)} className="bg-destructive hover:bg-destructive/90">
-                                        Delete
-                                      </AlertDialogAction>
-                                    </AlertDialogFooter>
-                                  </AlertDialogContent>
-                                </AlertDialog>
-                            </CardContent>
-                        </Card>
-                    ))}
-                </div>
-            ) : (
-                <Card>
-                    <CardContent className="p-8 text-center">
-                        <p className="text-muted-foreground">Your library is empty.</p>
-                        <p className="text-muted-foreground mt-2">Use the "Analyze" feature to find and save verses.</p>
-                        <Button asChild className="mt-4">
-                            <a href="/analyzer">Analyze a Verse</a>
-                        </Button>
-                    </CardContent>
-                </Card>
-            )}
+             <Card className="max-w-2xl mx-auto shadow-lg">
+                <CardHeader>
+                    <CardTitle className="text-3xl font-headline text-primary">My Profile</CardTitle>
+                    <CardDescription>Your personal account details.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                    <div className="flex items-center gap-6">
+                        <Avatar className="h-24 w-24 border-4 border-primary">
+                            <AvatarImage src={user.photoURL ?? ''} alt={user.displayName ?? 'User'} />
+                            <AvatarFallback className="text-3xl font-bold bg-secondary text-primary">
+                                {getInitials(user.displayName)}
+                            </AvatarFallback>
+                        </Avatar>
+                        <div>
+                             <h2 className="text-2xl font-bold">{user.displayName}</h2>
+                             <p className="text-muted-foreground">{user.email}</p>
+                        </div>
+                    </div>
+                    
+                    <div className="space-y-4 pt-4 border-t">
+                        <div className="flex items-center gap-3">
+                            <UserIcon className="h-5 w-5 text-muted-foreground" />
+                            <span className="text-sm">
+                                <span className="font-semibold">User ID:</span> {user.uid}
+                            </span>
+                        </div>
+                         <div className="flex items-center gap-3">
+                            <Mail className="h-5 w-5 text-muted-foreground" />
+                            <span className="text-sm">
+                               <span className="font-semibold">Email Verified:</span> {user.emailVerified ? 'Yes' : 'No'}
+                            </span>
+                        </div>
+                    </div>
+                </CardContent>
+             </Card>
         </div>
     );
 }
