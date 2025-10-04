@@ -8,7 +8,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { getAuth, signOut } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import { Skeleton } from './ui/skeleton';
-import { BrainCircuit } from 'lucide-react';
+import { BrainCircuit, LayoutDashboard, Library } from 'lucide-react';
 
 export default function Header() {
   const { user, isUserLoading } = useUser();
@@ -35,9 +35,9 @@ export default function Header() {
             {!isUserLoading && user ? (
                <>
                 <Button variant="ghost" asChild>
-                  <Link href="/analyzer">
-                    <BrainCircuit className="mr-2 h-4 w-4" />
-                    Analyzer
+                  <Link href="/dashboard">
+                    <LayoutDashboard className="mr-2 h-4 w-4" />
+                    Dashboard
                   </Link>
                 </Button>
                 <DropdownMenu>
@@ -59,8 +59,13 @@ export default function Header() {
                       </div>
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
+                     <DropdownMenuItem onClick={() => router.push('/analyzer')}>
+                      <BrainCircuit className="mr-2 h-4 w-4" />
+                      <span>Analyzer</span>
+                    </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => router.push('/library')}>
-                      My Library
+                       <Library className="mr-2 h-4 w-4" />
+                      <span>My Library</span>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={handleLogout}>

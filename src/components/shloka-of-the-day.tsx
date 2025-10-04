@@ -11,7 +11,7 @@ import {
 import { BookOpenText, Loader2, RefreshCw } from 'lucide-react';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, query, where, limit, Timestamp, doc } from 'firebase/firestore';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Skeleton } from './ui/skeleton';
 import { generateDailyShloka } from '@/ai/flows/generate-daily-shloka';
 import { generateVerseExplanations } from '@/ai/flows/generate-verse-explanations';
@@ -56,16 +56,6 @@ export default function ShlokaOfTheDay() {
 
   const { data: shlokas, isLoading, error } = useCollection<DailyShloka>(dailyShlokaQuery);
   const shloka = shlokas?.[0];
-
-  useEffect(() => {
-    // If loading is finished, there are no shlokas, and we are not already generating,
-    // then automatically trigger generation.
-    if (!isLoading && !shlokas?.length && !isGenerating) {
-      generateAndStoreShloka();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoading, shlokas, isGenerating]);
-
 
   const generateAndStoreShloka = async (force = false) => {
     if (!firestore) {
@@ -121,20 +111,19 @@ export default function ShlokaOfTheDay() {
     }
   };
 
-  if (isLoading || isGenerating) {
+  if (isLoading || (!shloka && !error)) {
     return (
-       <section className="mb-12">
-        <h2 className="text-3xl font-headline text-center mb-6 text-primary">Shloka of the Day</h2>
+       <section>
         <Card className="max-w-4xl mx-auto shadow-lg border-2 border-primary/20 overflow-hidden">
           <CardHeader className="text-center bg-secondary/50 p-6">
             <Skeleton className="h-6 w-48 mx-auto" />
           </CardHeader>
           <CardContent className="p-8 md:p-12 text-center flex flex-col items-center justify-center gap-4">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />
-            <p className="text-muted-foreground">{isGenerating ? 'Generating a fresh verse with AI...' : 'Loading today\'s verse...'}</p>
+            <p className="text-muted-foreground">Loading today's verse...</p>
           </CardContent>
            <CardFooter className="bg-secondary/50 p-3 justify-center">
-             <Button variant="ghost" size="sm" onClick={() => generateAndStoreShloka(true)} disabled={isGenerating}>
+             <Button variant="ghost" size="sm" onClick={() => generateAndStoreShloka(true)} disabled={isGenerating || isLoading}>
                  <RefreshCw className="mr-2 h-4 w-4" /> Force refresh
              </Button>
            </CardFooter>
@@ -143,14 +132,20 @@ export default function ShlokaOfTheDay() {
     )
   }
 
-  if (!shloka) {
+  if (error || !shloka) {
     return (
-       <section className="mb-12">
-        <h2 className="text-3xl font-headline text-center mb-6 text-primary">Shloka of the Day</h2>
-        <Card className="max-w-4xl mx-auto shadow-lg border-2 border-primary/20 overflow-hidden">
+       <section>
+        <Card className="max-w-4xl mx-auto shadow-lg border-2 border-destructive/20 overflow-hidden">
+           <CardHeader className="text-center">
+                <CardTitle className="text-destructive">Verse Not Found</CardTitle>
+                <CardDescription>A verse for today has not been generated yet.</CardDescription>
+           </CardHeader>
            <CardContent className="p-8 md:p-12 text-center flex flex-col items-center gap-4">
-            <p className="text-muted-foreground">No shloka available for today. Generating one now...</p>
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="text-muted-foreground">Click the button below to generate a new verse for today.</p>
+            <Button onClick={() => generateAndStoreShloka(true)} disabled={isGenerating}>
+                {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+                Generate Today's Verse
+            </Button>
           </CardContent>
         </Card>
       </section>
@@ -158,8 +153,7 @@ export default function ShlokaOfTheDay() {
   }
 
   return (
-    <section className="mb-12">
-      <h2 className="text-3xl font-headline text-center mb-6 text-primary">Shloka of the Day</h2>
+    <section>
       <Card className="max-w-4xl mx-auto shadow-lg border-2 border-primary/20 overflow-hidden">
         <CardHeader className="text-center bg-secondary/50 p-6">
           <div className="flex justify-center items-center gap-2 text-muted-foreground">
