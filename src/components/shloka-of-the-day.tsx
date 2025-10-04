@@ -105,15 +105,6 @@ export default function ShlokaOfTheDay() {
     }
   };
 
-  useEffect(() => {
-    // If loading is done, there are no shlokas, no error, and we aren't already generating, then generate one.
-    if (!isLoading && !shlokas?.length && !error && !isGenerating) {
-        generateAndStoreShloka();
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoading, shlokas, error, firestore]);
-
-
   if (isLoading || isGenerating) {
     return (
        <section className="mb-12">
@@ -137,11 +128,7 @@ export default function ShlokaOfTheDay() {
         <h2 className="text-3xl font-headline text-center mb-6 text-primary">Shloka of the Day</h2>
         <Card className="max-w-4xl mx-auto shadow-lg border-2 border-primary/20 overflow-hidden">
            <CardContent className="p-8 md:p-12 text-center flex flex-col items-center gap-4">
-            <p className="text-muted-foreground">No shloka available for today.</p>
-            <Button onClick={generateAndStoreShloka} disabled={isGenerating}>
-              <RefreshCw className="mr-2 h-4 w-4" />
-              Generate Manually
-            </Button>
+            <p className="text-muted-foreground">No shloka available for today. An administrator needs to generate one.</p>
           </CardContent>
         </Card>
       </section>
