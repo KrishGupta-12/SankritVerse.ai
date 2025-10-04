@@ -91,8 +91,9 @@ export default function VerseAnalysisDisplay({ result, originalVerse }: VerseAna
     
     // Use a hash of the verse text as a simple ID
     const verseId = btoa(unescape(encodeURIComponent(originalVerse))).substring(0, 20);
-    const verseRef = doc(firestore, 'verses', verseId);
     
+    // 1. Save the full verse details to the global 'verses' collection
+    const verseRef = doc(firestore, 'verses', verseId);
     const verseData = {
       id: verseId,
       text: originalVerse,
@@ -102,13 +103,13 @@ export default function VerseAnalysisDisplay({ result, originalVerse }: VerseAna
       translation: result.englishTranslation,
       summary: result.summary,
     };
-    // Use set with merge to avoid overwriting if it already exists
     setDocumentNonBlocking(verseRef, verseData, { merge: true });
 
-    // 2. Save the verse to the user's personal library
+    // 2. Save a reference to the user's personal library subcollection
     const userVerseRef = doc(firestore, `users/${user.uid}/userVerses`, verseId);
     const userVerseData = {
-      verseId: verseId,
+      id: verseId,
+      verseId: verseId, // Reference to the document in the 'verses' collection
       savedTimestamp: serverTimestamp(),
     };
     setDocumentNonBlocking(userVerseRef, userVerseData, { merge: true });
