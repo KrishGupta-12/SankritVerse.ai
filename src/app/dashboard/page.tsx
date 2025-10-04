@@ -29,7 +29,9 @@ export default function DashboardPage() {
     return (
         <div className="container mx-auto px-4 py-8">
             <h1 className="text-3xl font-headline text-primary mb-2 font-noto-devanagari">सुस्वागतम्, {user.displayName || 'User'}!</h1>
-            <p className="text-muted-foreground mb-8 font-noto-devanagari">अद्ययावत् अध्यात्मज्ञानम् इदम् अस्ति।</p>
+            <p className="text-muted-foreground mb-8">
+                <span className="font-noto-devanagari">अद्ययावत् अध्यात्मज्ञानम् इदम् अस्ति।</span> (Here is your spiritual insight for the day.)
+            </p>
             <div className="space-y-12">
                 <ShlokaOfTheDay />
                 <Separator />
