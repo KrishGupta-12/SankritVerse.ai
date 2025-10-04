@@ -145,34 +145,43 @@ function useVerseDetails(verseIds: string[]) {
     const [verses, setVerses] = useState<Record<string, Verse>>({});
     const [isLoading, setIsLoading] = useState(false);
 
+    const memoizedVerseIds = useMemo(() => verseIds.join(','), [verseIds]);
+
     useEffect(() => {
-        if (!firestore || verseIds.length === 0) {
+        if (!firestore || memoizedVerseIds.length === 0) {
             setVerses({});
             return;
         };
+        const currentVerseIds = memoizedVerseIds.split(',');
 
         const fetchVerses = async () => {
             setIsLoading(true);
             const newVerses: Record<string, Verse> = {};
-            // By getting the current state of verses from inside the effect, we avoid adding `verses` to dependency array.
-            const versesToFetch = verseIds.filter(id => !(id in verses));
+            const versesToFetch = currentVerseIds.filter(id => !(id in verses));
             
             if(versesToFetch.length > 0) {
                 for (const id of versesToFetch) {
+                    if (!id) continue;
                     const verseRef = doc(firestore, 'verses', id);
-                    const docSnap = await getDoc(verseRef);
-                    if (docSnap.exists()) {
-                        newVerses[id] = { id: docSnap.id, ...docSnap.data() } as Verse;
+                    try {
+                        const docSnap = await getDoc(verseRef);
+                        if (docSnap.exists()) {
+                            newVerses[id] = { id: docSnap.id, ...docSnap.data() } as Verse;
+                        }
+                    } catch (e) {
+                        console.error(`Failed to fetch verse ${id}`, e);
                     }
                 }
-                setVerses(prev => ({ ...prev, ...newVerses }));
+                if (Object.keys(newVerses).length > 0) {
+                  setVerses(prev => ({ ...prev, ...newVerses }));
+                }
             }
             setIsLoading(false);
         };
 
         fetchVerses();
 
-    }, [firestore, verseIds]); // Depend only on firestore and verseIds
+    }, [firestore, memoizedVerseIds]); 
 
     return { verses, isLoading: isLoading };
 }
@@ -199,21 +208,24 @@ export default function LibraryPage() {
     const { data: savedVerses, isLoading: isLoadingUserVerses } = useCollection<UserVerse>(userVersesQuery);
 
     const verseIds = useMemo(() => savedVerses?.map(v => v.verseId) ?? [], [savedVerses]);
-    // The useVerseDetails hook was causing an infinite loop. I'm memoizing verseDetails as well.
     const { verses: verseDetailsMap, isLoading: isLoadingVerseDetails } = useVerseDetails(verseIds);
     
     const combinedVerses = useMemo(() => {
         return (savedVerses ?? []).map(sv => ({
             ...sv,
             details: verseDetailsMap[sv.verseId]
-        })).filter(cv => cv.details); // Only include verses where details have loaded
+        })).filter(cv => cv.details);
     }, [savedVerses, verseDetailsMap]);
     
     const filteredVerses = useMemo(() => {
         let verses = combinedVerses;
         
         if(searchQuery) {
-            verses = verses.filter(v => v.details?.text.toLowerCase().includes(searchQuery.toLowerCase()));
+            verses = verses.filter(v => 
+                v.details?.text.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                v.details?.translation.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                v.details?.summary.toLowerCase().includes(searchQuery.toLowerCase())
+            );
         }
 
         if(selectedDate) {
@@ -254,7 +266,7 @@ export default function LibraryPage() {
     
     const isLoading = isUserLoading || isLoadingUserVerses || isLoadingVerseDetails;
 
-    if (isLoading && !filteredVerses.length) {
+    if (isLoading && combinedVerses.length === 0) {
         return (
             <div className="flex items-center justify-center min-h-[calc(100vh-12rem)]">
                 <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -294,6 +306,10 @@ export default function LibraryPage() {
                             selected={selectedDate}
                             onSelect={setSelectedDate}
                             initialFocus
+                            captionLayout="dropdown-buttons"
+                            fromYear={2020}
+                            toYear={new Date().getFullYear()}
+                            disabled={(date) => date > new Date() || date < new Date("1900-01-01")}
                         />
                         </PopoverContent>
                     </Popover>
@@ -307,7 +323,7 @@ export default function LibraryPage() {
 
             <Card>
                 <CardContent className="p-4">
-                    {isLoading && <Loader2 className="mx-auto my-4 h-6 w-6 animate-spin" />}
+                    {isLoading && filteredVerses.length === 0 && <Loader2 className="mx-auto my-4 h-6 w-6 animate-spin" />}
                     {!isLoading && filteredVerses.length > 0 ? (
                         <div className="divide-y divide-border">
                             {filteredVerses.map((verse) => (
@@ -324,10 +340,12 @@ export default function LibraryPage() {
                         </div>
                     ) : (
                         <div className="p-8 text-center">
-                            <p className="text-muted-foreground">
-                                {combinedVerses.length === 0 ? "Your library is empty." : "No verses match your filters."}
+                             <p className="text-muted-foreground">
+                                {searchQuery || selectedDate
+                                ? "No verses match your filters."
+                                : "Your library is empty."}
                             </p>
-                            {combinedVerses.length === 0 && (
+                            {(!searchQuery && !selectedDate) && (
                                 <>
                                  <p className="text-muted-foreground mt-2">Use the "Analyze" feature to find and save verses.</p>
                                  <Button asChild className="mt-4">
