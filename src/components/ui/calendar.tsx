@@ -13,6 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./select"
+import { ScrollArea } from "./scroll-area"
 
 export type CalendarProps = React.ComponentProps<typeof DayPicker>
 
