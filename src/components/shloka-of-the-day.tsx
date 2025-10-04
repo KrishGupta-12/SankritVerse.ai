@@ -57,11 +57,27 @@ export default function ShlokaOfTheDay() {
   const { data: shlokas, isLoading, error } = useCollection<DailyShloka>(dailyShlokaQuery);
   const shloka = shlokas?.[0];
 
-  const generateAndStoreShloka = async () => {
+  useEffect(() => {
+    // If loading is finished, there are no shlokas, and we are not already generating,
+    // then automatically trigger generation.
+    if (!isLoading && !shlokas?.length && !isGenerating) {
+      generateAndStoreShloka();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoading, shlokas, isGenerating]);
+
+
+  const generateAndStoreShloka = async (force = false) => {
     if (!firestore) {
       toast({ title: "Error", description: "Database connection not available.", variant: "destructive" });
       return;
     };
+    
+    if (shlokas?.length && !force) {
+        toast({ title: "Already up to date", description: "Today's verse has already been generated." });
+        return;
+    }
+
     setIsGenerating(true);
 
     try {
@@ -117,6 +133,11 @@ export default function ShlokaOfTheDay() {
             <Loader2 className="h-12 w-12 animate-spin text-primary" />
             <p className="text-muted-foreground">{isGenerating ? 'Generating a fresh verse with AI...' : 'Loading today\'s verse...'}</p>
           </CardContent>
+           <CardFooter className="bg-secondary/50 p-3 justify-center">
+             <Button variant="ghost" size="sm" onClick={() => generateAndStoreShloka(true)} disabled={isGenerating}>
+                 <RefreshCw className="mr-2 h-4 w-4" /> Force refresh
+             </Button>
+           </CardFooter>
         </Card>
       </section>
     )
@@ -128,7 +149,8 @@ export default function ShlokaOfTheDay() {
         <h2 className="text-3xl font-headline text-center mb-6 text-primary">Shloka of the Day</h2>
         <Card className="max-w-4xl mx-auto shadow-lg border-2 border-primary/20 overflow-hidden">
            <CardContent className="p-8 md:p-12 text-center flex flex-col items-center gap-4">
-            <p className="text-muted-foreground">No shloka available for today. An administrator needs to generate one.</p>
+            <p className="text-muted-foreground">No shloka available for today. Generating one now...</p>
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </CardContent>
         </Card>
       </section>
@@ -161,6 +183,11 @@ export default function ShlokaOfTheDay() {
             </footer>
           </blockquote>
         </CardContent>
+         <CardFooter className="bg-secondary/50 p-3 justify-center">
+             <Button variant="ghost" size="sm" onClick={() => generateAndStoreShloka(true)} disabled={isGenerating}>
+                 <RefreshCw className="mr-2 h-4 w-4" /> Force refresh
+             </Button>
+           </CardFooter>
       </Card>
     </section>
   );

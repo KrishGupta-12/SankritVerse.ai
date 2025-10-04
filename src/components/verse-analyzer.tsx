@@ -44,8 +44,7 @@ export default function VerseAnalyzer() {
   };
 
   return (
-    <section id="analyzer" className="mb-12">
-      <h2 className="text-3xl font-headline text-center mb-6 text-primary">Verse Analyzer</h2>
+    <section id="analyzer" className="container mx-auto px-4 py-8">
       <Card className="max-w-4xl mx-auto shadow-lg">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
