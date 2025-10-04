@@ -90,12 +90,10 @@ export default function PersonalizedRecommendations() {
             const rec = await personalizedShlokaRecommendations({
                 userInteractionHistory: interactionHistory,
                 userPreferences: 'General spiritual wisdom, verses about dharma, karma, and self-realization.',
-                // The availableShlokas can be left empty for the AI to generate a new one
                 availableShlokas: '', 
             });
             setRecommendation(rec);
 
-            // Now, get the full analysis of the recommended shloka
             const analysisResult = await generateVerseExplanations({ verseText: rec.recommendedShloka });
             setAnalysis(analysisResult);
 
@@ -111,14 +109,6 @@ export default function PersonalizedRecommendations() {
         }
     };
     
-    // Fetch recommendation on initial load if history is available
-    useEffect(() => {
-        if(history.length > 0 && !recommendation) {
-            getRecommendation();
-        }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [history]);
-
     if (isLoadingHistory) {
         return (
             <Card className="max-w-4xl mx-auto">
@@ -157,11 +147,17 @@ export default function PersonalizedRecommendations() {
                     <div className="flex justify-between items-start gap-4">
                         <div>
                              <CardTitle className="flex items-center gap-2"><Sparkles className="text-primary"/>Recommended For You</CardTitle>
-                             {recommendation?.reasoning && <CardDescription className="mt-2">{recommendation.reasoning}</CardDescription>}
+                             {recommendation?.reasoning ? (
+                                <CardDescription className="mt-2">{recommendation.reasoning}</CardDescription>
+                             ) : (
+                                <CardDescription className="mt-2">Click the button to generate a new verse based on your saved library.</CardDescription>
+                             )}
                         </div>
-                        <Button variant="outline" size="icon" onClick={getRecommendation} disabled={isLoading}>
-                           <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-                        </Button>
+                        {recommendation && (
+                            <Button variant="outline" size="icon" onClick={getRecommendation} disabled={isLoading}>
+                               <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+                            </Button>
+                        )}
                     </div>
                 </CardHeader>
                 <CardContent>
@@ -171,12 +167,14 @@ export default function PersonalizedRecommendations() {
                              <p className="mt-2 text-muted-foreground">Finding a new verse for you...</p>
                         </div>
                     )}
-                    {recommendation && analysis && (
+                    {recommendation && analysis ? (
                         <VerseAnalysisDisplay result={analysis} originalVerse={recommendation.recommendedShloka} />
-                    )}
-                    {!isLoading && !recommendation && (
-                         <div className="text-center p-8">
-                            <p className="text-muted-foreground mb-4">Click the refresh button to generate a new recommendation.</p>
+                    ) : (
+                         <div className="text-center p-8 border-t">
+                            <Button onClick={getRecommendation} disabled={isLoading} size="lg">
+                                <Sparkles className="mr-2 h-5 w-5" />
+                                Generate Recommendation
+                            </Button>
                         </div>
                     )}
                 </CardContent>
