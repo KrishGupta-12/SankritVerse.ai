@@ -5,7 +5,7 @@ import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import Link from 'next/link';
-import { BrainCircuit, Library, ScanText, Sparkles } from 'lucide-react';
+import { BrainCircuit, Library, ScanText, Sparkles, Linkedin, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useUser } from '@/firebase';
 
@@ -61,12 +61,9 @@ export default function Home() {
             <p className="mt-4 text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
               Unlock the wisdom of ancient scriptures. Analyze, learn, and immerse yourself in the beauty of Sanskrit verses.
             </p>
-            <div className="mt-8 flex flex-col sm:flex-row justify-center gap-4">
+            <div className="mt-8 flex justify-center gap-4">
               <Button asChild size="lg">
                 <Link href={user ? "/dashboard" : "/signup"}>{user ? "Go to Dashboard" : "Get Started for Free"}</Link>
-              </Button>
-              <Button asChild size="lg" variant="outline">
-                <Link href="/analyzer">Analyze a Verse</Link>
               </Button>
             </div>
           </div>
@@ -107,7 +104,6 @@ export default function Home() {
             <Card className="max-w-md mx-auto shadow-xl overflow-hidden border-primary/20 border-2">
               <CardContent className="p-8 flex flex-col items-center gap-4">
                 <Avatar className="h-28 w-28 border-4 border-primary">
-                   <AvatarImage src="https://avatars.githubusercontent.com/u/10756734?v=4" alt="Krish Gupta" />
                    <AvatarFallback className="text-5xl font-bold bg-secondary text-primary">
                     KG
                   </AvatarFallback>
@@ -115,11 +111,20 @@ export default function Home() {
                 <div className="text-center">
                   <h3 className="text-3xl font-bold font-body">Krish Gupta</h3>
                   <p className="text-muted-foreground mt-1">Founder and CEO</p>
-                  <Button variant="link" asChild className="mt-2">
-                     <Link href="https://krishgupta.in" target="_blank" rel="noopener noreferrer">
-                      krishgupta.in
-                    </Link>
-                  </Button>
+                  <div className="flex justify-center gap-2 mt-2">
+                    <Button variant="ghost" size="icon" asChild>
+                      <Link href="https://www.linkedin.com/in/krish-gupta-11612327a/" target="_blank" rel="noopener noreferrer">
+                        <Linkedin className="h-5 w-5" />
+                        <span className="sr-only">LinkedIn</span>
+                      </Link>
+                    </Button>
+                     <Button variant="ghost" size="icon" asChild>
+                       <Link href="https://www.krishgupta.in/" target="_blank" rel="noopener noreferrer">
+                        <Globe className="h-5 w-5" />
+                        <span className="sr-only">Website</span>
+                      </Link>
+                    </Button>
+                  </div>
                 </div>
                  <p className="text-muted-foreground italic text-center mt-2">
                   "Our mission is to make the profound wisdom of Sanskrit scriptures accessible to everyone, everywhere, breaking down barriers of language and complexity through the power of AI."

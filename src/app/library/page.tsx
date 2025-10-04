@@ -109,9 +109,9 @@ function VerseRow({ index, verse, onSelectVerse, onDelete }: { index: number, ve
 
     return (
         <div className="group flex items-center justify-between gap-4 p-3 rounded-lg hover:bg-muted/50 transition-colors">
-            <button onClick={onSelectVerse} className="flex-grow text-left flex items-center gap-4">
-                <span className="text-sm font-medium text-muted-foreground w-6 text-right">{index}.</span>
-                <div className="flex-grow">
+            <button onClick={onSelectVerse} className="flex-grow text-left flex items-center gap-4 overflow-hidden">
+                <span className="text-sm font-medium text-muted-foreground w-6 text-right flex-shrink-0">{index}.</span>
+                <div className="flex-grow overflow-hidden">
                     <p className="font-noto-devanagari text-base truncate">{verse.details?.text ?? 'Loading verse...'}</p>
                     <p className="text-xs text-muted-foreground">
                         Saved on {format(verse.savedTimestamp.toDate(), "PP")}
@@ -284,13 +284,13 @@ export default function LibraryPage() {
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
                 <h1 className="text-3xl font-headline text-primary">My Saved Verses</h1>
                 <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-                    <div className="relative w-full sm:w-64">
+                    <div className="relative w-full sm:w-auto sm:flex-grow">
                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         <Input 
                             placeholder="Search verses..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="pl-9"
+                            className="pl-9 w-full"
                         />
                     </div>
                      <Popover>
@@ -319,13 +319,14 @@ export default function LibraryPage() {
                     {selectedDate && (
                          <Button variant="ghost" size="icon" onClick={() => setSelectedDate(undefined)}>
                             <X className="h-4 w-4" />
+                             <span className="sr-only">Clear date filter</span>
                         </Button>
                     )}
                 </div>
             </div>
 
             <Card>
-                <CardContent className="p-4">
+                <CardContent className="p-0 sm:p-4">
                     {isLoading && filteredVerses.length === 0 && <Loader2 className="mx-auto my-4 h-6 w-6 animate-spin" />}
                     {!isLoading && filteredVerses.length > 0 ? (
                         <div className="divide-y divide-border">
