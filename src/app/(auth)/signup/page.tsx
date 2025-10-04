@@ -17,27 +17,53 @@ import { useAuth } from "@/firebase";
 import { initiateEmailSignUp } from "@/firebase/non-blocking-login";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
+import { getAuth, onAuthStateChanged, updateProfile } from "firebase/auth";
 
 export default function SignupPage() {
-  const [firstName, setFirstName] = useState('');
+  const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const auth = useAuth();
   const { toast } = useToast();
 
-
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    initiateEmailSignUp(auth, email, password);
-    toast({
-      title: "Creating account...",
-      description: "You will be redirected shortly.",
-    });
-    // No more setTimeout redirect here. The AuthRedirectProvider will handle it.
-  };
+    
+    try {
+      // Use a listener to catch the user creation and update the profile
+      const unsubscribe = onAuthStateChanged(getAuth(), async (user) => {
+        if (user) {
+          // Once the user is created by initiateEmailSignUp, update their profile
+          unsubscribe(); // We only need to do this once
+          try {
+            await updateProfile(user, { displayName: fullName });
+            // The FirebaseProvider will handle creating the Firestore doc
+          } catch (profileError) {
+             console.error("Error updating profile: ", profileError);
+             toast({
+                title: "Signup Warning",
+                description: "Could not save your full name. You can update it later in your profile.",
+                variant: "destructive",
+             });
+          }
+        }
+      });
+      
+      initiateEmailSignUp(auth, email, password);
 
+      toast({
+        title: "Creating account...",
+        description: "You will be redirected shortly.",
+      });
+      // The AuthRedirectProvider will handle the redirect.
+
+    } catch (error) {
+       console.error("Signup error", error);
+       setLoading(false);
+    }
+  };
 
   return (
     <div className="flex items-center justify-center min-h-[calc(100vh-12rem)] py-12">
@@ -51,13 +77,13 @@ export default function SignupPage() {
           </CardHeader>
           <CardContent className="grid gap-4">
             <div className="grid gap-2">
-              <Label htmlFor="first-name">First name</Label>
+              <Label htmlFor="full-name">Full name</Label>
               <Input 
-                id="first-name" 
-                placeholder="Max" 
+                id="full-name" 
+                placeholder="Max Robinson" 
                 required 
-                value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
                 disabled={loading}
               />
             </div>

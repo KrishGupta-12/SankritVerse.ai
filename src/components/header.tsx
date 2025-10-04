@@ -22,7 +22,11 @@ export default function Header() {
 
   const getInitials = (name?: string | null) => {
     if (!name) return 'U';
-    return name.split(' ').map(n => n[0]).join('');
+    const names = name.split(' ');
+    if (names.length > 1) {
+      return `${names[0][0]}${names[names.length - 1][0]}`;
+    }
+    return names[0].substring(0, 2);
   }
 
   return (
@@ -31,13 +35,19 @@ export default function Header() {
         <Logo />
         <div className="flex flex-1 items-center justify-end space-x-4">
           <nav className="flex items-center space-x-2">
-            {isUserLoading && <Skeleton className="h-10 w-28" />}
+            {isUserLoading && <Skeleton className="h-10 w-40" />}
             {!isUserLoading && user ? (
                <>
                 <Button variant="ghost" asChild>
-                  <Link href="/dashboard">
-                    <LayoutDashboard className="mr-2 h-4 w-4" />
-                    Dashboard
+                  <Link href="/analyzer">
+                    <BrainCircuit className="mr-2 h-4 w-4" />
+                    Analyzer
+                  </Link>
+                </Button>
+                 <Button variant="ghost" asChild>
+                  <Link href="/library">
+                    <Library className="mr-2 h-4 w-4" />
+                    My Library
                   </Link>
                 </Button>
                 <DropdownMenu>
@@ -59,13 +69,13 @@ export default function Header() {
                       </div>
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
-                     <DropdownMenuItem onClick={() => router.push('/analyzer')}>
-                      <BrainCircuit className="mr-2 h-4 w-4" />
-                      <span>Analyzer</span>
+                    <DropdownMenuItem onClick={() => router.push('/dashboard')}>
+                      <LayoutDashboard className="mr-2 h-4 w-4" />
+                      <span>Dashboard</span>
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => router.push('/library')}>
+                    <DropdownMenuItem onClick={() => router.push('/profile')}>
                        <Library className="mr-2 h-4 w-4" />
-                      <span>My Library</span>
+                      <span>Profile</span>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={handleLogout}>
