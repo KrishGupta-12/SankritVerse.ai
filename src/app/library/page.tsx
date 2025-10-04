@@ -1,7 +1,7 @@
 'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useUser, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
+import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from "@/firebase";
 import { collection, query, orderBy, doc, deleteDoc } from "firebase/firestore";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -20,48 +20,36 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 
-
-// We need a more detailed type that includes the verse details
-type SavedVerse = {
+type UserVerse = {
     id: string; // This will be the userVerse document ID from the subcollection
     verseId: string;
     savedTimestamp: any;
-    // These fields will be populated from the corresponding document in the /verses collection
-    text?: string;
-    translation?: string;
 };
 
+type Verse = {
+    text?: string;
+    translation?: string;
+}
 
-export default function LibraryPage() {
-    const { user, isUserLoading } = useUser();
+function SavedVerseCard({ userVerse }: { userVerse: UserVerse }) {
     const firestore = useFirestore();
-    const router = useRouter();
     const { toast } = useToast();
-    const [deletingId, setDeletingId] = useState<string | null>(null);
+    const { user } = useUser();
+    const [deleting, setDeleting] = useState(false);
 
-    const userVersesQuery = useMemoFirebase(() => {
-        if (!user || !firestore) return null;
-        return query(
-            collection(firestore, `users/${user.uid}/userVerses`),
-            orderBy('savedTimestamp', 'desc')
-        );
-    }, [user, firestore]);
+    const verseRef = useMemoFirebase(() => {
+        if (!firestore) return null;
+        return doc(firestore, 'verses', userVerse.verseId);
+    }, [firestore, userVerse.verseId]);
 
-    const { data: savedVerses, isLoading: isLoadingVerses } = useCollection<SavedVerse>(userVersesQuery);
+    const { data: verse, isLoading: isLoadingVerse } = useDoc<Verse>(verseRef);
 
-    useEffect(() => {
-        if (!isUserLoading && !user) {
-            router.push('/login');
-        }
-    }, [user, isUserLoading, router]);
-
-
-    const handleDelete = async (userVerseId: string) => {
+    const handleDelete = async () => {
         if (!user || !firestore) return;
-        setDeletingId(userVerseId);
+        setDeleting(true);
         try {
-            const verseRef = doc(firestore, `users/${user.uid}/userVerses`, userVerseId);
-            await deleteDoc(verseRef);
+            const verseDocRef = doc(firestore, `users/${user.uid}/userVerses`, userVerse.id);
+            await deleteDoc(verseDocRef);
             toast({
                 title: "Verse Removed",
                 description: "The verse has been removed from your library.",
@@ -74,10 +62,73 @@ export default function LibraryPage() {
                 variant: "destructive",
             });
         } finally {
-            setDeletingId(null);
+            setDeleting(false);
         }
     };
 
+    return (
+        <Card className="shadow-sm hover:shadow-md transition-shadow">
+            <CardContent className="p-4 flex justify-between items-start">
+                {isLoadingVerse ? (
+                     <div className="flex items-center space-x-4">
+                        <div className="space-y-2">
+                            <div className="h-4 w-[250px] bg-gray-200 rounded animate-pulse"></div>
+                            <div className="h-4 w-[200px] bg-gray-200 rounded animate-pulse"></div>
+                        </div>
+                    </div>
+                ) : (
+                    <div>
+                        <p className="font-noto-devanagari text-lg mb-2">{verse?.text}</p>
+                        <p className="text-muted-foreground italic">"{verse?.translation}"</p>
+                    </div>
+                )}
+                <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                    <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-destructive" disabled={deleting}>
+                        {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                    </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                        This action cannot be undone. This will permanently delete the verse from your library.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">
+                        Delete
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+            </CardContent>
+        </Card>
+    );
+}
+
+
+export default function LibraryPage() {
+    const { user, isUserLoading } = useUser();
+    const firestore = useFirestore();
+    const router = useRouter();
+
+    const userVersesQuery = useMemoFirebase(() => {
+        if (!user || !firestore) return null;
+        return query(
+            collection(firestore, `users/${user.uid}/userVerses`),
+            orderBy('savedTimestamp', 'desc')
+        );
+    }, [user, firestore]);
+
+    const { data: savedVerses, isLoading: isLoadingVerses } = useCollection<UserVerse>(userVersesQuery);
+
+    useEffect(() => {
+        if (!isUserLoading && !user) {
+            router.push('/login');
+        }
+    }, [user, isUserLoading, router]);
 
     if (isUserLoading || isLoadingVerses) {
         return (
@@ -88,8 +139,6 @@ export default function LibraryPage() {
     }
     
     if (!user) {
-        // This will be handled by the useEffect redirect, but it's good practice
-        // to have a fallback UI state.
         return null;
     }
 
@@ -99,35 +148,7 @@ export default function LibraryPage() {
             {savedVerses && savedVerses.length > 0 ? (
                 <div className="grid gap-4">
                     {savedVerses.map((verse) => (
-                        <Card key={verse.id} className="shadow-sm hover:shadow-md transition-shadow">
-                            <CardContent className="p-4 flex justify-between items-start">
-                                <div>
-                                    <p className="font-noto-devanagari text-lg mb-2">{verse.id}</p>
-                                    <p className="text-muted-foreground italic">"{verse.verseId}"</p>
-                                </div>
-                                <AlertDialog>
-                                  <AlertDialogTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-destructive" disabled={deletingId === verse.id}>
-                                      {deletingId === verse.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                                    </Button>
-                                  </AlertDialogTrigger>
-                                  <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                      <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                      <AlertDialogDescription>
-                                        This action cannot be undone. This will permanently delete the verse from your library.
-                                      </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                      <AlertDialogAction onClick={() => handleDelete(verse.id)} className="bg-destructive hover:bg-destructive/90">
-                                        Delete
-                                      </AlertDialogAction>
-                                    </AlertDialogFooter>
-                                  </AlertDialogContent>
-                                </AlertDialog>
-                            </CardContent>
-                        </Card>
+                        <SavedVerseCard key={verse.id} userVerse={verse} />
                     ))}
                 </div>
             ) : (
@@ -136,7 +157,7 @@ export default function LibraryPage() {
                         <p className="text-muted-foreground">Your library is empty.</p>
                         <p className="text-muted-foreground mt-2">Use the "Analyze" feature to find and save verses.</p>
                         <Button asChild className="mt-4">
-                            <a href="/analyzer">Analyze a Verse</a>
+                            <Link href="/analyzer">Analyze a Verse</Link>
                         </Button>
                     </CardContent>
                 </Card>
