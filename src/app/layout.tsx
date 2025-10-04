@@ -5,6 +5,7 @@ import { Toaster } from '@/components/ui/toaster';
 import Header from '@/components/header';
 import Footer from '@/components/footer';
 import { FirebaseClientProvider } from '@/firebase/client-provider';
+import { AuthRedirectProvider } from '@/firebase/auth-redirect-provider';
 
 const APP_NAME = "SanskritVerse AI";
 const APP_DESCRIPTION = "Analyze, learn, and explore Sanskrit verses with AI.";
@@ -45,10 +46,12 @@ export default function RootLayout({
       </head>
       <body className={cn('min-h-screen bg-background font-body text-foreground antialiased flex flex-col')}>
         <FirebaseClientProvider>
-          <Header />
-          <main className="flex-1">{children}</main>
-          <Footer />
-          <Toaster />
+          <AuthRedirectProvider>
+            <Header />
+            <main className="flex-1">{children}</main>
+            <Footer />
+            <Toaster />
+          </AuthRedirectProvider>
         </FirebaseClientProvider>
       </body>
     </html>

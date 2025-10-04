@@ -17,7 +17,6 @@ import { useAuth } from "@/firebase";
 import { initiateEmailSignUp } from "@/firebase/non-blocking-login";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
-import { useRouter } from "next/navigation";
 
 export default function SignupPage() {
   const [firstName, setFirstName] = useState('');
@@ -26,7 +25,6 @@ export default function SignupPage() {
   const [loading, setLoading] = useState(false);
   const auth = useAuth();
   const { toast } = useToast();
-  const router = useRouter();
 
 
   const handleSignup = async (e: React.FormEvent) => {
@@ -37,11 +35,7 @@ export default function SignupPage() {
       title: "Creating account...",
       description: "You will be redirected shortly.",
     });
-    setTimeout(() => {
-        if (window.location.pathname === '/signup') {
-            router.push('/');
-        }
-    }, 2000);
+    // No more setTimeout redirect here. The AuthRedirectProvider will handle it.
   };
 
 

@@ -17,7 +17,6 @@ import { useAuth } from "@/firebase";
 import { initiateEmailSignIn } from "@/firebase/non-blocking-login";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
-import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -25,23 +24,17 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const auth = useAuth();
   const { toast } = useToast();
-  const router = useRouter();
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     initiateEmailSignIn(auth, email, password);
-    // The onAuthStateChanged listener in FirebaseProvider will handle the redirect
-    // We can show a toast and eventually redirect if it takes too long
+    // The onAuthStateChanged listener in AuthRedirectProvider will handle the redirect.
     toast({
       title: "Logging in...",
-      description: "You will be redirected shortly.",
+      description: "You will be redirected to your dashboard shortly.",
     });
-    setTimeout(() => {
-        if (window.location.pathname === '/login') {
-            router.push('/');
-        }
-    }, 2000);
+    // No more setTimeout redirect here.
   };
 
 
