@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Loader2, Mail, User as UserIcon, ShieldCheck, ShieldAlert } from 'lucide-react';
+import { Loader2, User as UserIcon, ShieldCheck } from 'lucide-react';
 
 export default function ProfilePage() {
     const { user, isUserLoading } = useUser();
@@ -62,13 +62,12 @@ export default function ProfilePage() {
                                 <span className="font-semibold">User ID:</span> {user.uid}
                             </span>
                         </div>
-                         <div className="flex items-center gap-3">
-                            {user.emailVerified ? <ShieldCheck className="h-5 w-5 text-green-600" /> : <ShieldAlert className="h-5 w-5 text-yellow-600" />}
-                            <span className="text-sm">
-                               <span className="font-semibold">Email Verified:</span> {user.emailVerified ? 'Yes' : 'No'}
-                                {!user.emailVerified && <span className="text-xs text-muted-foreground"> (Check your inbox to verify)</span>}
-                            </span>
-                        </div>
+                        {user.emailVerified && (
+                             <div className="flex items-center gap-3">
+                                <ShieldCheck className="h-5 w-5 text-green-600" />
+                                <span className="text-sm font-semibold">Email Verified</span>
+                            </div>
+                        )}
                     </div>
                 </CardContent>
              </Card>
