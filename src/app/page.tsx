@@ -7,9 +7,11 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import Link from 'next/link';
 import { BrainCircuit, Library, ScanText, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useUser } from '@/firebase';
 
 export default function Home() {
   const heroImage = PlaceHolderImages.find((img) => img.id === 'hero-mandala');
+  const { user } = useUser();
 
   const features = [
     {
@@ -29,8 +31,8 @@ export default function Home() {
     },
     {
       icon: <ScanText className="h-10 w-10 text-primary" />,
-      title: 'Scan from Book (Coming Soon)',
-      description: 'Use your camera to instantly capture and analyze verses directly from physical books, bridging the gap between ancient texts and modern tech.',
+      title: 'Scan from Book',
+      description: 'Use your camera to instantly capture and analyze verses directly from physical books, bridging ancient texts and modern tech.',
     },
   ];
 
@@ -59,9 +61,9 @@ export default function Home() {
             <p className="mt-4 text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
               Unlock the wisdom of ancient scriptures. Analyze, learn, and immerse yourself in the beauty of Sanskrit verses.
             </p>
-            <div className="mt-8 flex justify-center gap-4">
+            <div className="mt-8 flex flex-col sm:flex-row justify-center gap-4">
               <Button asChild size="lg">
-                <Link href="/signup">Get Started for Free</Link>
+                <Link href={user ? "/dashboard" : "/signup"}>{user ? "Go to Dashboard" : "Get Started for Free"}</Link>
               </Button>
               <Button asChild size="lg" variant="outline">
                 <Link href="/analyzer">Analyze a Verse</Link>

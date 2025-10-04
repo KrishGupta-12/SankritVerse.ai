@@ -3,8 +3,7 @@
 import { useState } from 'react';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { BrainCircuit, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { generateVerseExplanations, type GenerateVerseExplanationsOutput } from '@/ai/flows/generate-verse-explanations';
 import { useToast } from '@/hooks/use-toast';
 import VerseAnalysisDisplay from '@/components/verse-analysis-display';
@@ -50,46 +49,33 @@ export default function VerseAnalyzer() {
   };
 
   return (
-    <section id="analyzer" className="container mx-auto px-4 py-8">
-      <Card className="max-w-4xl mx-auto shadow-lg">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <BrainCircuit className="text-primary" />
-            AI-Powered Analysis
-          </CardTitle>
-          <CardDescription>
-            Enter a Sanskrit verse below, or scan one from a book, to get a detailed breakdown.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleAnalyze}>
-            <Textarea
-              value={verse}
-              onChange={(e) => setVerse(e.target.value)}
-              placeholder="Enter your Sanskrit verse here... e.g., कर्मण्येवाधिकारस्ते मा फलेषु कदाचन।"
-              className="min-h-[120px] text-lg font-noto-devanagari mb-4 focus-visible:ring-accent"
-              disabled={loading}
+    <div className="pt-6">
+        <form onSubmit={handleAnalyze}>
+        <Textarea
+            value={verse}
+            onChange={(e) => setVerse(e.target.value)}
+            placeholder="Enter your Sanskrit verse here... e.g., कर्मण्येवाधिकारस्ते मा फलेषु कदाचन।"
+            className="min-h-[120px] text-lg font-noto-devanagari mb-4 focus-visible:ring-accent"
+            disabled={loading}
+        />
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-2">
+            <Button type="submit" disabled={loading} size="lg" className="w-full sm:w-auto">
+            {loading ? (
+                <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Analyzing...
+                </>
+            ) : (
+                'Analyze Verse'
+            )}
+            </Button>
+            <CameraScanner 
+            onScanComplete={handleScanComplete}
+            setParentLoading={setLoading}
             />
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <Button type="submit" disabled={loading} size="lg">
-                {loading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Analyzing...
-                  </>
-                ) : (
-                  'Analyze Verse'
-                )}
-              </Button>
-              <CameraScanner 
-                onScanComplete={handleScanComplete}
-                setParentLoading={setLoading}
-              />
-            </div>
-          </form>
-          {result && <VerseAnalysisDisplay result={result} originalVerse={verse} />}
-        </CardContent>
-      </Card>
-    </section>
+        </div>
+        </form>
+        {result && <VerseAnalysisDisplay result={result} originalVerse={verse} />}
+    </div>
   );
 }

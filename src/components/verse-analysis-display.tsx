@@ -185,23 +185,23 @@ export default function VerseAnalysisDisplay({ result, originalVerse }: VerseAna
       <Accordion type="single" collapsible defaultValue="item-1" className="w-full">
         <AccordionItem value="item-1">
           <AccordionTrigger className="text-lg font-semibold">English Translation</AccordionTrigger>
-          <AccordionContent className="text-base leading-relaxed">{result.englishTranslation}</AccordionContent>
+          <AccordionContent className="text-base leading-relaxed text-muted-foreground">{result.englishTranslation}</AccordionContent>
         </AccordionItem>
         <AccordionItem value="item-2">
           <AccordionTrigger className="text-lg font-semibold">Summary</AccordionTrigger>
-          <AccordionContent className="text-base leading-relaxed">{result.summary}</AccordionContent>
+          <AccordionContent className="text-base leading-relaxed text-muted-foreground">{result.summary}</AccordionContent>
         </AccordionItem>
         <AccordionItem value="item-3">
           <AccordionTrigger className="text-lg font-semibold">Transliteration</AccordionTrigger>
-          <AccordionContent className="text-base leading-relaxed font-mono">{result.transliteration}</AccordionContent>
+          <AccordionContent className="text-base leading-relaxed font-mono text-muted-foreground">{result.transliteration}</AccordionContent>
         </AccordionItem>
         <AccordionItem value="item-4">
           <AccordionTrigger className="text-lg font-semibold">Word by Word Meanings</AccordionTrigger>
-          <AccordionContent className="text-base leading-relaxed whitespace-pre-wrap">{result.wordMeanings}</AccordionContent>
+          <AccordionContent className="text-base leading-relaxed whitespace-pre-wrap text-muted-foreground">{result.wordMeanings}</AccordionContent>
         </AccordionItem>
         <AccordionItem value="item-5">
           <AccordionTrigger className="text-lg font-semibold">Grammar Tags</AccordionTrigger>
-          <AccordionContent className="text-base leading-relaxed whitespace-pre-wrap font-mono">{result.grammarTags}</AccordionContent>
+          <AccordionContent className="text-base leading-relaxed whitespace-pre-wrap font-mono text-muted-foreground">{result.grammarTags}</AccordionContent>
         </AccordionItem>
       </Accordion>
     </div>

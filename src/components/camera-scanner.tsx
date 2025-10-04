@@ -89,7 +89,7 @@ export default function CameraScanner({ onScanComplete, setParentLoading }: Came
 
   return (
     <>
-      <Button onClick={handleOpen} variant="outline" size="lg">
+      <Button onClick={handleOpen} variant="outline" size="lg" className="w-full sm:w-auto">
         <Camera className="mr-2 h-4 w-4" />
         Scan from Book
       </Button>
@@ -130,14 +130,14 @@ export default function CameraScanner({ onScanComplete, setParentLoading }: Came
                 </div>
             )}
           </div>
-          <DialogFooter className="gap-2">
+          <DialogFooter className="flex flex-col sm:flex-row gap-2">
             {imgSrc ? (
               <>
-                <Button variant="outline" onClick={() => setImgSrc(null)} disabled={isScanning}>
+                <Button variant="outline" onClick={() => setImgSrc(null)} disabled={isScanning} className="w-full sm:w-auto">
                   <RefreshCw className="mr-2 h-4 w-4" />
                   Retake
                 </Button>
-                <Button onClick={handleScan} disabled={isScanning}>
+                <Button onClick={handleScan} disabled={isScanning} className="w-full sm:w-auto">
                   {isScanning ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -152,7 +152,7 @@ export default function CameraScanner({ onScanComplete, setParentLoading }: Came
                 </Button>
               </>
             ) : (
-              <Button onClick={capture} disabled={!hasCameraPermission}>
+              <Button onClick={capture} disabled={!hasCameraPermission} className="w-full sm:w-auto">
                 <Camera className="mr-2 h-4 w-4" />
                 Capture
               </Button>
