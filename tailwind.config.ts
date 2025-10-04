@@ -17,7 +17,8 @@ export default {
     },
     extend: {
       fontFamily: {
-        body: ['"Noto Sans Devanagari"', 'sans-serif'],
+        'noto-devanagari': ['"Noto Sans Devanagari"', 'sans-serif'],
+        body: ['"Noto Sans"', 'sans-serif'],
         headline: ['Samarkan', 'cursive'],
       },
       colors: {

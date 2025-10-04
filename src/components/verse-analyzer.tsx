@@ -62,7 +62,7 @@ export default function VerseAnalyzer() {
               value={verse}
               onChange={(e) => setVerse(e.target.value)}
               placeholder="Enter your Sanskrit verse here... e.g., कर्मण्येवाधिकारस्ते मा फलेषु कदाचन।"
-              className="min-h-[120px] text-lg font-body mb-4 focus-visible:ring-accent"
+              className="min-h-[120px] text-lg font-noto-devanagari mb-4 focus-visible:ring-accent"
               disabled={loading}
             />
             <div className="flex flex-wrap items-center justify-between gap-2">

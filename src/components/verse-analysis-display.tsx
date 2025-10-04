@@ -89,12 +89,12 @@ export default function VerseAnalysisDisplay({ result, originalVerse }: VerseAna
     }
     setIsSaving(true);
     
-    // 1. Save the main verse data to /verses/{verseId} if it's new
-    // We can use a hash of the verse text as a simple ID
+    // Use a hash of the verse text as a simple ID
     const verseId = btoa(unescape(encodeURIComponent(originalVerse))).substring(0, 20);
     const verseRef = doc(firestore, 'verses', verseId);
     
     const verseData = {
+      id: verseId,
       text: originalVerse,
       transliteration: result.transliteration,
       wordMeanings: result.wordMeanings,
@@ -126,7 +126,7 @@ export default function VerseAnalysisDisplay({ result, originalVerse }: VerseAna
         <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
                 <h3 className="text-2xl font-bold font-body text-primary mb-2">Analysis Results</h3>
-                <p className="text-muted-foreground whitespace-pre-line text-lg font-bold">{originalVerse}</p>
+                <p className="text-muted-foreground whitespace-pre-line text-lg font-bold font-noto-devanagari">{originalVerse}</p>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
                 <TooltipProvider>
