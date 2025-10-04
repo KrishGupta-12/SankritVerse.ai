@@ -5,9 +5,12 @@ import { GenerateVerseExplanationsOutput } from '@/ai/flows/generate-verse-expla
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
 import { Heart, Loader2, Share2, Volume2, VolumeX } from 'lucide-react';
-import { Separator } from './ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 import { useToast } from '@/hooks/use-toast';
+import { useUser, useFirestore } from '@/firebase';
+import { doc, serverTimestamp } from 'firebase/firestore';
+import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { useRouter } from 'next/navigation';
 
 interface VerseAnalysisDisplayProps {
   result: GenerateVerseExplanationsOutput;
@@ -17,7 +20,12 @@ interface VerseAnalysisDisplayProps {
 export default function VerseAnalysisDisplay({ result, originalVerse }: VerseAnalysisDisplayProps) {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [canSpeak, setCanSpeak] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
+  const { user } = useUser();
+  const firestore = useFirestore();
+  const router = useRouter();
+
 
   useEffect(() => {
     setCanSpeak(typeof window !== 'undefined' && !!window.speechSynthesis);
@@ -74,6 +82,44 @@ export default function VerseAnalysisDisplay({ result, originalVerse }: VerseAna
     });
   }
 
+  const handleSave = async () => {
+    if (!user || !firestore) {
+      router.push('/login');
+      return;
+    }
+    setIsSaving(true);
+    
+    // 1. Save the main verse data to /verses/{verseId} if it's new
+    // We can use a hash of the verse text as a simple ID
+    const verseId = btoa(unescape(encodeURIComponent(originalVerse))).substring(0, 20);
+    const verseRef = doc(firestore, 'verses', verseId);
+    
+    const verseData = {
+      text: originalVerse,
+      transliteration: result.transliteration,
+      wordMeanings: result.wordMeanings,
+      grammarTags: result.grammarTags,
+      translation: result.englishTranslation,
+      summary: result.summary,
+    };
+    // Use set with merge to avoid overwriting if it already exists
+    setDocumentNonBlocking(verseRef, verseData, { merge: true });
+
+    // 2. Save the verse to the user's personal library
+    const userVerseRef = doc(firestore, `users/${user.uid}/userVerses`, verseId);
+    const userVerseData = {
+      verseId: verseId,
+      savedTimestamp: serverTimestamp(),
+    };
+    setDocumentNonBlocking(userVerseRef, userVerseData, { merge: true });
+
+    toast({
+      title: "Verse Saved!",
+      description: "This verse has been added to your personal library.",
+    });
+
+    setIsSaving(false);
+  }
 
   return (
     <div className="mt-8 pt-6 border-t">
@@ -104,12 +150,12 @@ export default function VerseAnalysisDisplay({ result, originalVerse }: VerseAna
                     </Tooltip>
                      <Tooltip>
                         <TooltipTrigger asChild>
-                            <Button variant="outline" size="icon" disabled>
-                                <Heart className="h-5 w-5" />
+                            <Button variant="outline" size="icon" onClick={handleSave} disabled={isSaving}>
+                                {isSaving ? <Loader2 className="h-5 w-5 animate-spin" /> : <Heart className="h-5 w-5" />}
                                 <span className="sr-only">Save to library</span>
                             </Button>
                         </TooltipTrigger>
-                        <TooltipContent><p>Login to save to your library</p></TooltipContent>
+                        <TooltipContent><p>{user ? "Save to your library" : "Login to save"}</p></TooltipContent>
                     </Tooltip>
                 </TooltipProvider>
             </div>
