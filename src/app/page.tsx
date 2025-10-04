@@ -107,6 +107,7 @@ export default function Home() {
             <Card className="max-w-md mx-auto shadow-xl overflow-hidden border-primary/20 border-2">
               <CardContent className="p-8 flex flex-col items-center gap-4">
                 <Avatar className="h-28 w-28 border-4 border-primary">
+                   <AvatarImage src="https://avatars.githubusercontent.com/u/10756734?v=4" alt="Krish Gupta" />
                    <AvatarFallback className="text-5xl font-bold bg-secondary text-primary">
                     KG
                   </AvatarFallback>
