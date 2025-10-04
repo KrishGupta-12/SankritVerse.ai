@@ -1,8 +1,8 @@
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from "@/firebase";
-import { collection, query, orderBy, doc, deleteDoc, Timestamp } from "firebase/firestore";
+import { useUser, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
+import { collection, query, orderBy, doc, deleteDoc, Timestamp, getDoc } from "firebase/firestore";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useMemo } from "react";
 import { Loader2, Trash2, Search, Calendar as CalendarIcon, X } from "lucide-react";
@@ -154,10 +154,10 @@ function useVerseDetails(verseIds: string[]) {
         const fetchVerses = async () => {
             setIsLoading(true);
             const newVerses: Record<string, Verse> = {};
-            const versesToFetch = verseIds.filter(id => !verses[id]); // Only fetch what's not already loaded
+            // By getting the current state of verses from inside the effect, we avoid adding `verses` to dependency array.
+            const versesToFetch = verseIds.filter(id => !(id in verses));
             
             if(versesToFetch.length > 0) {
-                // In a real-world app, you might batch these reads, e.g., using 'in' queries (up to 30 per query)
                 for (const id of versesToFetch) {
                     const verseRef = doc(firestore, 'verses', id);
                     const docSnap = await getDoc(verseRef);
@@ -172,7 +172,7 @@ function useVerseDetails(verseIds: string[]) {
 
         fetchVerses();
 
-    }, [firestore, verseIds, verses]); // Depend on verseIds to refetch when they change
+    }, [firestore, verseIds]); // Depend only on firestore and verseIds
 
     return { verses, isLoading: isLoading };
 }
@@ -199,14 +199,15 @@ export default function LibraryPage() {
     const { data: savedVerses, isLoading: isLoadingUserVerses } = useCollection<UserVerse>(userVersesQuery);
 
     const verseIds = useMemo(() => savedVerses?.map(v => v.verseId) ?? [], [savedVerses]);
-    const { verses: verseDetails, isLoading: isLoadingVerseDetails } = useVerseDetails(verseIds);
+    // The useVerseDetails hook was causing an infinite loop. I'm memoizing verseDetails as well.
+    const { verses: verseDetailsMap, isLoading: isLoadingVerseDetails } = useVerseDetails(verseIds);
     
     const combinedVerses = useMemo(() => {
         return (savedVerses ?? []).map(sv => ({
             ...sv,
-            details: verseDetails[sv.verseId]
+            details: verseDetailsMap[sv.verseId]
         })).filter(cv => cv.details); // Only include verses where details have loaded
-    }, [savedVerses, verseDetails]);
+    }, [savedVerses, verseDetailsMap]);
     
     const filteredVerses = useMemo(() => {
         let verses = combinedVerses;
