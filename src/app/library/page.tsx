@@ -1,6 +1,6 @@
 'use client';
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from "@/firebase";
 import { collection, query, orderBy, doc, deleteDoc } from "firebase/firestore";
 import { useRouter } from "next/navigation";
@@ -22,17 +22,18 @@ import {
 } from "@/components/ui/alert-dialog"
 
 type UserVerse = {
-    id: string; // This is the userVerse document ID from the subcollection
+    id: string; // This is the userVerse document ID from the subcollection, which is also the verseId
     verseId: string;
     savedTimestamp: any;
 };
 
 type Verse = {
+    id: string;
     text?: string;
     translation?: string;
 }
 
-function SavedVerseCard({ userVerse }: { userVerse: UserVerse }) {
+function SavedVerseCard({ userVerseId }: { userVerseId: string }) {
     const firestore = useFirestore();
     const { toast } = useToast();
     const { user } = useUser();
@@ -41,9 +42,8 @@ function SavedVerseCard({ userVerse }: { userVerse: UserVerse }) {
     // This reference points to the document in the top-level 'verses' collection
     const verseRef = useMemoFirebase(() => {
         if (!firestore) return null;
-        // The verseId from the user's subcollection points to the main verse doc
-        return doc(firestore, 'verses', userVerse.verseId);
-    }, [firestore, userVerse.verseId]);
+        return doc(firestore, 'verses', userVerseId);
+    }, [firestore, userVerseId]);
 
     const { data: verse, isLoading: isLoadingVerse } = useDoc<Verse>(verseRef);
 
@@ -52,7 +52,7 @@ function SavedVerseCard({ userVerse }: { userVerse: UserVerse }) {
         setDeleting(true);
         try {
             // This reference points to the document in the user's 'userVerses' subcollection
-            const userVerseDocRef = doc(firestore, `users/${user.uid}/userVerses`, userVerse.id);
+            const userVerseDocRef = doc(firestore, `users/${user.uid}/userVerses`, userVerseId);
             await deleteDoc(userVerseDocRef);
             toast({
                 title: "Verse Removed",
@@ -74,10 +74,10 @@ function SavedVerseCard({ userVerse }: { userVerse: UserVerse }) {
         <Card className="shadow-sm hover:shadow-md transition-shadow">
             <CardContent className="p-4 flex justify-between items-start">
                 {isLoadingVerse ? (
-                     <div className="flex items-center space-x-4">
-                        <div className="space-y-2">
-                            <div className="h-4 w-[250px] bg-gray-200 rounded animate-pulse"></div>
-                            <div className="h-4 w-[200px] bg-gray-200 rounded animate-pulse"></div>
+                     <div className="flex items-center space-x-4 w-full">
+                        <div className="space-y-2 w-full">
+                            <Skeleton className="h-4 w-3/4" />
+                            <Skeleton className="h-4 w-1/2" />
                         </div>
                     </div>
                 ) : verse ? (
@@ -87,12 +87,12 @@ function SavedVerseCard({ userVerse }: { userVerse: UserVerse }) {
                     </div>
                 ) : (
                     <div>
-                      <p className="text-muted-foreground">Verse details could not be loaded.</p>
+                      <p className="text-muted-foreground">Verse details could not be loaded for ID: {userVerseId}</p>
                     </div>
                 )}
                 <AlertDialog>
                     <AlertDialogTrigger asChild>
-                    <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-destructive" disabled={deleting}>
+                    <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-destructive flex-shrink-0" disabled={deleting}>
                         {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
                     </Button>
                     </AlertDialogTrigger>
@@ -100,7 +100,7 @@ function SavedVerseCard({ userVerse }: { userVerse: UserVerse }) {
                     <AlertDialogHeader>
                         <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                         <AlertDialogDescription>
-                        This action cannot be undone. This will permanently delete the verse from your library.
+                        This action cannot be undone. This will permanently delete this verse from your library.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
@@ -114,6 +114,10 @@ function SavedVerseCard({ userVerse }: { userVerse: UserVerse }) {
             </CardContent>
         </Card>
     );
+}
+
+function Skeleton({ className }: { className: string }) {
+  return <div className={`animate-pulse bg-gray-200 rounded ${className}`} />;
 }
 
 
@@ -156,7 +160,7 @@ export default function LibraryPage() {
             {savedVerses && savedVerses.length > 0 ? (
                 <div className="grid gap-4">
                     {savedVerses.map((verse) => (
-                        <SavedVerseCard key={verse.id} userVerse={verse} />
+                        <SavedVerseCard key={verse.id} userVerseId={verse.id} />
                     ))}
                 </div>
             ) : (

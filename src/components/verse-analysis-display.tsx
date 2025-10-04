@@ -8,7 +8,7 @@ import { Heart, Loader2, Share2, Volume2, VolumeX } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 import { useToast } from '@/hooks/use-toast';
 import { useUser, useFirestore } from '@/firebase';
-import { doc, serverTimestamp } from 'firebase/firestore';
+import { doc, serverTimestamp, getDoc } from 'firebase/firestore';
 import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useRouter } from 'next/navigation';
 
@@ -88,38 +88,58 @@ export default function VerseAnalysisDisplay({ result, originalVerse }: VerseAna
       return;
     }
     setIsSaving(true);
-    
-    // Use a hash of the verse text as a simple ID
-    const verseId = btoa(unescape(encodeURIComponent(originalVerse))).substring(0, 20);
-    
-    // 1. Save the full verse details to the global 'verses' collection
-    const verseRef = doc(firestore, 'verses', verseId);
-    const verseData = {
-      id: verseId,
-      text: originalVerse,
-      transliteration: result.transliteration,
-      wordMeanings: result.wordMeanings,
-      grammarTags: result.grammarTags,
-      translation: result.englishTranslation,
-      summary: result.summary,
-    };
-    setDocumentNonBlocking(verseRef, verseData, { merge: true });
 
-    // 2. Save a reference to the user's personal library subcollection
-    const userVerseRef = doc(firestore, `users/${user.uid}/userVerses`, verseId);
-    const userVerseData = {
-      id: verseId,
-      verseId: verseId, // Reference to the document in the 'verses' collection
-      savedTimestamp: serverTimestamp(),
-    };
-    setDocumentNonBlocking(userVerseRef, userVerseData, { merge: true });
+    try {
+        // Use a hash of the verse text as a consistent and unique ID.
+        const verseId = btoa(unescape(encodeURIComponent(originalVerse))).substring(0, 20);
+        
+        // 1. Save the full verse details to the global 'verses' collection
+        const verseRef = doc(firestore, 'verses', verseId);
+        const verseData = {
+            id: verseId,
+            text: originalVerse,
+            transliteration: result.transliteration,
+            wordMeanings: result.wordMeanings,
+            grammarTags: result.grammarTags,
+            translation: result.englishTranslation,
+            summary: result.summary,
+        };
+        // This write is non-blocking, but we can proceed.
+        setDocumentNonBlocking(verseRef, verseData, { merge: true });
 
-    toast({
-      title: "Verse Saved!",
-      description: "This verse has been added to your personal library.",
-    });
+        // 2. Save a reference to the user's personal library subcollection.
+        // We use the same verseId for the document ID in the subcollection for easy lookup/deletion.
+        const userVerseRef = doc(firestore, `users/${user.uid}/userVerses`, verseId);
+        
+        // Check if it's already saved to prevent redundant toasts/writes, though Firestore handles overwrites.
+        const docSnap = await getDoc(userVerseRef);
+        if (docSnap.exists()) {
+             toast({
+                title: "Already in Library",
+                description: "This verse is already saved to your library.",
+            });
+        } else {
+            const userVerseData = {
+                verseId: verseId, // Reference to the document in the 'verses' collection
+                savedTimestamp: serverTimestamp(),
+            };
+            setDocumentNonBlocking(userVerseRef, userVerseData, {});
+            toast({
+                title: "Verse Saved!",
+                description: "This verse has been added to your personal library.",
+            });
+        }
 
-    setIsSaving(false);
+    } catch (error) {
+        console.error("Error saving verse:", error);
+        toast({
+            title: "Save Failed",
+            description: "Could not save the verse. Please try again.",
+            variant: "destructive",
+        });
+    } finally {
+        setIsSaving(false);
+    }
   }
 
   return (
